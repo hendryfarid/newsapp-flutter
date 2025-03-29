@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../news_detail_screen.dart';
+import 'news_detail_screen.dart';
 
 class NewsTab extends StatefulWidget {
   const NewsTab({Key? key}) : super(key: key);

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -12,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   @override
   void dispose() {
@@ -21,9 +25,56 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    // Bypass validation and directly navigate to home
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Error signing in with Google: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -137,6 +188,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: _isLoading
                       ? const CircularProgressIndicator()
                       : const Text('Login'),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'OR',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _isLoading ? null : _handleGoogleSignIn,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black87,
+                    side: const BorderSide(color: Colors.grey),
+                  ),
+                  icon: Image.network(
+                    'https://www.google.com/favicon.ico',
+                    height: 24,
+                  ),
+                  label: const Text('Sign in with Google'),
                 ),
               ],
             ),
